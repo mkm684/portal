@@ -29,17 +29,6 @@ def on_resubscribe_complete(resubscribe_future):
         if qos is None:
             sys.exit("Server rejected resubscribe to topic: {}".format(topic))
 
-
-# Callback when the subscribed topic receives a message
-def on_message_received(topic, payload, dup, qos, retain, **kwargs):
-    # Check if the payload contains the "message" field
-    if 'aws' in str(payload):
-        # Message sent from AWS IoT console
-        print("Received message from AWS IoT console on topic '{}': {}".format(topic, payload))
-    elif 'portal' in str(payload):
-        # Message sent from your application
-        print("Received message from topic '{}': {}".format(topic, payload))
-
 # Callback when the connection successfully connects
 def on_connection_success(connection, callback_data):
     assert isinstance(callback_data, mqtt.OnConnectionSuccessData)
