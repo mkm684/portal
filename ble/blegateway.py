@@ -3,6 +3,9 @@ import dbus
 import re
 import threading
 
+import sys
+sys.path.append('../ble_utils')
+
 import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib 

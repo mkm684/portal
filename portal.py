@@ -2,6 +2,10 @@ import select
 import time
 import sys
 
+sys.path.append('aws')
+sys.path.append('ble')
+sys.path.append('ble_utils')
+
 import blegateway
 import awsgateway
 import bluetooth_constants

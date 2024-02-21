@@ -2,6 +2,9 @@
 import dbus
 import re
 
+import sys
+sys.path.append('../ble_utils')
+
 import bluetooth_constants
 import bluetooth_utils
 
