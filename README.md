@@ -30,6 +30,7 @@ To use the Portal IoT Gateway, follow these steps:
 https://docs.aws.amazon.com/iot/latest/developerguide/connecting-to-existing-device.html
 - configure your project path in the aws/config.ini. 
 - copy your aws file gateway.cert.pem, gateway.private.key, root-CA.crt into the aws_auth. Feel free to change the path of these files in the config file. 
+- Setup the AWS Policy using the policy in the aws_auth/gateway-Policy
 
 ## Dependencies 
 - Install the Bluez library using the following command 
