@@ -1,0 +1,42 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iot:Publish",
+        "iot:Receive",
+        "iot:PublishRetain"
+      ],
+      "Resource": [
+        "arn:aws:iot:us-east-2:241027715695:topic/sdk/test/java",
+        "arn:aws:iot:us-east-2:241027715695:topic/sdk/test/python",
+        "arn:aws:iot:us-east-2:241027715695:topic/sdk/test/js",
+        "arn:aws:iot:us-east-2:241027715695:topic/portal/ble/test",
+        "arn:aws:iot:us-east-2:241027715695:topic/portal/ble/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Subscribe",
+      "Resource": [
+        "arn:aws:iot:us-east-2:241027715695:topicfilter/sdk/test/java",
+        "arn:aws:iot:us-east-2:241027715695:topicfilter/sdk/test/python",
+        "arn:aws:iot:us-east-2:241027715695:topicfilter/sdk/test/js",
+        "arn:aws:iot:us-east-2:241027715695:topicfilter/portal/ble/test",
+        "arn:aws:iot:us-east-2:241027715695:topicfilter/portal/ble/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": [
+        "arn:aws:iot:us-east-2:241027715695:client/sdk-java",
+        "arn:aws:iot:us-east-2:241027715695:client/basicPubSub",
+        "arn:aws:iot:us-east-2:241027715695:client/mybasicclientid",
+        "arn:aws:iot:us-east-2:241027715695:client/sdk-nodejs-*"
+      ]
+    }
+  ]
+}
+

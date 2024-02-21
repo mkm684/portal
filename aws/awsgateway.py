@@ -3,15 +3,26 @@ from awsiot import mqtt_connection_builder
 
 import json
 import awscallbacks
+import configparser
 
-#config
-default_input_port = 8883
-default_endpoint = 'aftrw2t6y8wsg-ats.iot.us-east-2.amazonaws.com'
-default_clintID = 'mybasicclientid'
-default_topic =  'mytopic/ble/' # 'protal/ble/'
-default_test_msg = 'portal: Hello from Portal'
+# Create a ConfigParser object
+config = configparser.ConfigParser()
 
-aws_gateway_folder_path = '/home/mohmah/projects/aws-gateway'
+# Read the config file
+config.read('config.ini')
+
+# Access variables from the config file
+default_input_port = config.getint('config', 'default_input_port')
+default_endpoint = config.get('config', 'default_endpoint')
+default_client_id = config.get('config', 'default_client_id')
+default_topic = config.get('config', 'default_topic')
+default_test_msg = config.get('config', 'default_test_msg')
+
+project_path = config.get('config', 'project_path')
+aws_auth_folder_path = config.get('config', 'aws_auth_folder_path')
+default_cert_filepath = config.get('config', 'default_cert_filepath')
+default_pri_key = config.get('config', 'default_pri_key')
+default_ca_filepath = config.get('config', 'default_ca_filepath')
 
 class PortalDevice():
     def __init__(self, name, mqtt_conn, aws_cb):
@@ -66,9 +77,9 @@ def start_aws_app():
     mqtt_connection = mqtt_connection_builder.mtls_from_path(
         endpoint=default_endpoint,
         port=default_input_port,
-        cert_filepath=aws_gateway_folder_path + '/gateway.cert.pem',
-        pri_key_filepath=aws_gateway_folder_path + '/gateway.private.key',
-        ca_filepath=aws_gateway_folder_path + '/root-CA.crt',
+        cert_filepath=default_cert_filepath,
+        pri_key_filepath=default_pri_key,
+        ca_filepath=default_ca_filepath,
         on_connection_interrupted=awscallbacks.on_connection_interrupted,
         on_connection_resumed=awscallbacks.on_connection_resumed,
         client_id=default_clintID,
