@@ -1,79 +1,14 @@
 #!/usr/bin/python3
-
 import dbus
-
-from advertisement import Advertisement
-from service import Application, Service, Characteristic, Descriptor
+import re
 
 import bluetooth_constants
 import bluetooth_utils
 
-GATT_CHRC_IFACE = "org.bluez.GattCharacteristic1"
-NOTIFY_TIMEOUT = 5000
-
-adapter_interface = None
-
 devices = {}
 managed_objects_found = 0
-
-# classes 
-class LedAdvertisement(Advertisement):
-    def __init__(self, index,):
-        Advertisement.__init__(self, index, "peripheral")
-        self.add_local_name("LED")
-        self.include_tx_power = True
-
-class LedService(Service):
-    def __init__(self, index):
-        Service.__init__(self, index, bluetooth_constants.LED_SVC_UUID, True)
-        self.add_characteristic(LedCharacteristic(self))
-
-class LedCharacteristic(Characteristic):
-    def __init__(self, service):
-        self.notifying = False
-        self.localValue = 10
-        Characteristic.__init__(
-                self, bluetooth_constants.LED_TEXT_CHR_UUID, 
-                ["notify", "read", "write"], service)
-        
-    def ReadValue(self, options):
-        value = []
-        strtemp = str(self.localValue)
-        for c in strtemp:
-            value.append(dbus.Byte(c.encode()))
-        
-        self.localValue = self.localValue + 1
-        print("ReadValue", options)
-        return value
-    
-    def WriteValue(self, value, options):
-        val_decimals = value[:]
-        text_string = ''.join(chr(decimal) for decimal in val_decimals)
-        # print(text_string)
-        print("WriteValue", text_string, options)
-
-    def set_val_callback(self):
-        if self.notifying:
-            print("sending led notification : " + str(self.localValue)) 
-            value = []
-            strtemp = str(self.localValue)
-            for c in strtemp:
-                value.append(dbus.Byte(c.encode()))
-            self.PropertiesChanged(GATT_CHRC_IFACE, {"Value": value}, [])
-            self.localValue = self.localValue + 1
-
-        return self.notifying
-
-    def StartNotify(self):
-        if self.notifying:
-            return
-        self.notifying = True
-        self.set_val_callback()
-        self.add_timeout(NOTIFY_TIMEOUT, self.set_val_callback)
-
-    def StopNotify(self):
-        self.remove_timeout()
-        self.notifying = False
+adapter_interface = None
+devices_update_cb_func = None
 
 # functions
 def properties_changed(interface, changed, invalidated, path): 
@@ -86,6 +21,12 @@ def properties_changed(interface, changed, invalidated, path):
 	else:
 		devices[path] = changed
 		
+	dev = devices[path] 
+	match = re.search(r'dev_(\w+)', dev['Device'])
+	if match:
+		dev_name = match.group(1)
+
+	devices_update_cb_func('updated', dev_name)
 	list_connected_devices()
 
 def interfaces_removed(path, interfaces):
@@ -94,6 +35,11 @@ def interfaces_removed(path, interfaces):
       
 	if path in devices:
 		dev = devices[path]
+		match = re.search(r'dev_(\w+)', dev['Device'])
+		if match:
+			dev_name = match.group(1)
+			
+		devices_update_cb_func('removed', dev_name)
 		del devices[path]
 		list_connected_devices()
 	else:
@@ -107,11 +53,18 @@ def interfaces_added(path, interfaces):
 	if path not in devices:
 		devices[path] = device_properties 
 		dev = devices[path]
+		match = re.search(r'dev_(\w+)', dev['Device'])
+		if match:
+			dev_name = match.group(1)
+		devices_update_cb_func('added', dev_name)
 		list_connected_devices()
+
+def get_devices():
+	return devices
 
 def list_connected_devices():
 	# Clear the console (optional)
-	print("\033[H\033[J")  # For Unix-like systems
+	# print("\033[H\033[J")  # For Unix-like systems
 	print("Full list of devices",len(devices),"discovered:") 
 	print("------------------------------")
 	for path in devices:
@@ -137,10 +90,11 @@ def remove_sig_hndlrs():
 	list_connected_devices()
 	return True
 
-def set_sig_hndlrs(bus):
+def set_sig_hndlrs(bus, devices_update_cb):
 	global adapter_interface
-	print('set_sig_hndlrs')
-
+	global devices_update_cb_func
+	
+	devices_update_cb_func = devices_update_cb
 	adapter_path = bluetooth_constants.BLUEZ_NAMESPACE + bluetooth_constants.ADAPTER_NAME
 
 	# acquire an adapter proxy object and its Adapter1 interface so we can call its methods
@@ -165,21 +119,3 @@ def set_sig_hndlrs(bus):
 			dbus_interface = bluetooth_constants.DBUS_PROPERTIES, 
 			signal_name = "PropertiesChanged",
 			path_keyword = "path")
-	
-# main 
-app = Application()
-app.add_service(LedService(0))
-app.register()
-
-adv = LedAdvertisement(0)
-adv.register()
-
-# dbus initialisation steps
-dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-bus = dbus.SystemBus()
-set_sig_hndlrs(bus)
-
-try:
-    app.run()
-except KeyboardInterrupt:
-    app.quit()

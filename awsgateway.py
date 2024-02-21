@@ -1,11 +1,7 @@
-from awscrt import mqtt, http
+from awscrt import mqtt
 from awsiot import mqtt_connection_builder
 
-import sys
-import select
-import time
 import json
-
 import awscallbacks
 
 #config
@@ -17,26 +13,31 @@ default_test_msg = 'portal: Hello from Portal'
 
 aws_gateway_folder_path = '/home/mohmah/projects/aws-gateway'
 
-
 class PortalDevice():
-    def __init__(self, name, mqtt_conn):
+    def __init__(self, name, mqtt_conn, aws_cb):
         self.mqtt = mqtt_conn
+        self.device_name = name
         self.message_topic = default_topic + name
+        self.aws_msg_cb = aws_cb
 
     # Callback when the subscribed topic receives a message
     def on_message_received(self, topic, payload, dup, qos, retain, **kwargs):
         # Check if the payload contains the "message" field
         if 'aws' in str(payload):
-            # Message sent from AWS IoT console
-            print("Received message from AWS IoT console on topic '{}': {}".format(topic, payload))
+            # Message sent from AWS IoT console 
+            payload_str = payload.decode('utf-8')
+            payload_json = json.loads(payload_str)
+            payload_data = payload_json['aws']
+            print("Received message from AWS IoT console on topic '{}': {}".format(topic, payload_data))
+            self.aws_msg_cb('write', self.device_name, payload_data)
         elif 'portal' in str(payload):
             # Message sent from your application
-            print("Received message from topic '{}': {}".format(topic, payload))
+            print("Received message from topic '{}': {}".format(topic, payload[len("portal:"):]))
 
     def aws_subsribe(self): 
         # Subscribe
         print("Subscribing to topic '{}'...".format(self.message_topic))
-        subscribe_future, packet_id = mqtt_connection.subscribe(
+        subscribe_future, packet_id = self.mqtt.subscribe(
             topic=self.message_topic,
             qos=mqtt.QoS.AT_LEAST_ONCE,
             callback=lambda topic, payload, dup, qos, retain: 
@@ -45,9 +46,12 @@ class PortalDevice():
         subscribe_result = subscribe_future.result()
         print("Subscribed with {}".format(str(subscribe_result['qos'])))
         return subscribe_result
+    
+    def aws_unsubsribe(self):
+        return
 
     def aws_send_msg(self, msg_payload):
-        message_json = json.dumps(msg_payload)
+        message_json = json.dumps('portal:' + msg_payload)
         print("sending msg  {}".format(str(message_json)))
         publish_future, packet_id  = self.mqtt.publish(
                     topic=self.message_topic,
@@ -55,8 +59,8 @@ class PortalDevice():
                     qos=mqtt.QoS.AT_LEAST_ONCE)
         return publish_future.result()
 
-# main
-if __name__ == '__main__':
+# aws main
+def start_aws_app():
     ### AWS ###
     # Create a MQTT connection from the command line data
     mqtt_connection = mqtt_connection_builder.mtls_from_path(
@@ -81,21 +85,9 @@ if __name__ == '__main__':
     connect_future.result()
     print("Connected!")
 
-    newDevice = PortalDevice('test', mqtt_connection)
-    newDevice.aws_subsribe()
+    return mqtt_connection
 
-    # Main loop
-    while True:
-        # Check if there is input available on sys.stdin
-        rlist, _, _ = select.select([sys.stdin], [], [], 0.1)  # Check every 0.1 seconds
-        if rlist:
-            # Input is available, read the input
-            user_input = sys.stdin.readline().strip()
-            if user_input == 'e':
-                break  # Exit the loop if the user enters 'e'
-        time.sleep(2)
-        newDevice.aws_send_msg(default_test_msg)
-
+def stop_aws_app(mqtt_connection):
     # Disconnect
     print("Disconnecting...")
     disconnect_future = mqtt_connection.disconnect()
