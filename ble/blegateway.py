@@ -20,18 +20,18 @@ GATT_CHRC_IFACE = "org.bluez.GattCharacteristic1"
 NOTIFY_TIMEOUT = 2000
 
 # classes 
-class LedAdvertisement(Advertisement):
+class PortalAdvertisement(Advertisement):
     def __init__(self, index,):
         Advertisement.__init__(self, index, "peripheral")
-        self.add_local_name("LED")
+        self.add_local_name("PORTAL")
         self.include_tx_power = True
 
-class LedService(Service):
+class PortalService(Service):
     def __init__(self, index, msg_cb):
         Service.__init__(self, index, bluetooth_constants.LED_SVC_UUID, True)
-        self.add_characteristic(LedCharacteristic(self, val_update_cb = msg_cb))
+        self.add_characteristic(PortalCharacteristic(self, val_update_cb = msg_cb))
 
-class LedCharacteristic(Characteristic):
+class PortalCharacteristic(Characteristic):
     def __init__(self, service, val_update_cb):
         self.notifying = False
         self.localValue = 10
@@ -61,7 +61,7 @@ class LedCharacteristic(Characteristic):
 
     def set_val_callback(self):
         if self.notifying:
-            print("sending led notification : " + str(self.localValue)) 
+            print("sending portal notification : " + str(self.localValue)) 
             self.broadcastValue(self.localValue)
             self.localValue = self.localValue + 1
 
@@ -106,10 +106,10 @@ def ble_app_run(app):
 
 def start_ble_app(devices_update_cb, device_msg_cb):     
 	app = Application()
-	app.add_service(LedService(0, device_msg_cb))
+	app.add_service(PortalService(0, device_msg_cb))
 	app.register()
 
-	adv = LedAdvertisement(0)
+	adv = PortalAdvertisement(0)
 	adv.register()
 
 	# dbus initialisation steps
